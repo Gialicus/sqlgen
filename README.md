@@ -26,6 +26,6 @@ VALUES (
 );
 
 UPDATE users SET
-  email = <value>,
-  age = <value>
-WHERE id = <value>;
+  email = \<value\>,
+  age = \<value\>
+WHERE id = \<value\>;
