@@ -1,14 +1,18 @@
 use crate::{
+    errors::parser_error::ParserError,
     parser::{db_constraint::parse_constraint, db_type_parser::parse_db_type, parser::FieldSchema},
     utils::remove_last_comma::remove_last_comma,
 };
 
-pub fn create_table_template(table_name: &str, fields: &Vec<FieldSchema>) -> String {
+pub fn create_table_template(
+    table_name: &str,
+    fields: &Vec<FieldSchema>,
+) -> Result<String, ParserError> {
     let mut base = format!("CREATE TABLE {table_name} (\n");
     for schema in fields.iter() {
-        let mut row = format!("  {} {}", schema.key, parse_db_type(&schema.db_type));
+        let mut row = format!("  {} {}", schema.key, parse_db_type(&schema.db_type)?);
         for constraint in schema.constraint.iter() {
-            let constraint = parse_constraint(&constraint);
+            let constraint = parse_constraint(&constraint)?;
             row += (" ".to_owned() + &constraint).as_str();
         }
         base += &row;
@@ -16,7 +20,7 @@ pub fn create_table_template(table_name: &str, fields: &Vec<FieldSchema>) -> Str
     }
     remove_last_comma(&mut base);
     base += ");\n";
-    base
+    Ok(base)
 }
 
 #[cfg(test)]
@@ -34,7 +38,7 @@ mod create_table_test {
             ),
             FieldSchema::new("age".to_string(), "integer".to_string(), vec![]),
         ];
-        let table = create_table_template(table_name, &fields);
+        let table = create_table_template(table_name, &fields).unwrap();
         let expected =
             format!("CREATE TABLE users (\n  name TEXT NOT NULL PRIMARY KEY,\n  age INTEGER\n);\n");
         assert_eq!(table, expected);

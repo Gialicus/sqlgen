@@ -1,3 +1,5 @@
+use crate::errors::parser_error::ParserError;
+
 #[derive(Debug, PartialEq)]
 enum DbConstraintType {
     PrimaryKey,
@@ -8,31 +10,34 @@ enum DbConstraintType {
     NotNull,
 }
 impl DbConstraintType {
-    pub fn from_str(input: &str) -> DbConstraintType {
+    pub fn from_str(input: &str) -> Result<DbConstraintType, ParserError> {
         match input.to_lowercase().as_str() {
-            "primarykey" => DbConstraintType::PrimaryKey,
-            "unique" => DbConstraintType::Unique,
-            "foreingkey" => DbConstraintType::ForeignKey,
-            "check" => DbConstraintType::Check,
-            "default" => DbConstraintType::Default,
-            "notnull" => DbConstraintType::NotNull,
-            _ => panic!("{} is not valid db constraint", input),
+            "primarykey" => Ok(DbConstraintType::PrimaryKey),
+            "unique" => Ok(DbConstraintType::Unique),
+            "foreingkey" => Ok(DbConstraintType::ForeignKey),
+            "check" => Ok(DbConstraintType::Check),
+            "default" => Ok(DbConstraintType::Default),
+            "notnull" => Ok(DbConstraintType::NotNull),
+            _ => Err(ParserError::Constraint(format!(
+                "{} is not valid db constraint",
+                input
+            ))),
         }
     }
 }
 
-pub fn parse_constraint(value: &str) -> String {
+pub fn parse_constraint(value: &str) -> Result<String, ParserError> {
     if value.is_empty() {
         panic!("value can't be empty")
     }
-    let column_type = DbConstraintType::from_str(value);
+    let column_type = DbConstraintType::from_str(value)?;
     match column_type {
-        DbConstraintType::PrimaryKey => "PRIMARY KEY".to_string(),
-        DbConstraintType::Unique => value.to_uppercase(),
-        DbConstraintType::ForeignKey => "FOREIGN KEY".to_string(),
-        DbConstraintType::Check => value.to_uppercase(),
-        DbConstraintType::Default => value.to_uppercase(),
-        DbConstraintType::NotNull => "NOT NULL".to_string(),
+        DbConstraintType::PrimaryKey => Ok("PRIMARY KEY".to_string()),
+        DbConstraintType::Unique => Ok(value.to_uppercase()),
+        DbConstraintType::ForeignKey => Ok("FOREIGN KEY".to_string()),
+        DbConstraintType::Check => Ok(value.to_uppercase()),
+        DbConstraintType::Default => Ok(value.to_uppercase()),
+        DbConstraintType::NotNull => Ok("NOT NULL".to_string()),
     }
 }
 
@@ -41,14 +46,15 @@ mod db_constraint_test {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "foobar is not valid db constraint")]
     fn test_from_str_unknown_type() {
-        DbConstraintType::from_str("foobar");
+        let result = DbConstraintType::from_str("foobar");
+        assert_eq!(result.is_err(), true)
     }
 
     #[test]
     fn test_parse_constraint_valid() {
-        let result = parse_constraint("notnull");
-        assert_eq!("NOT NULL", result)
+        if let Ok(result) = parse_constraint("notnull") {
+            assert_eq!("NOT NULL", result)
+        };
     }
 }

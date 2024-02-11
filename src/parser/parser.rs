@@ -1,3 +1,5 @@
+use crate::errors::parser_error::ParserError;
+
 use super::db_type_parser::parse_db_type;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -17,29 +19,41 @@ impl FieldSchema {
     }
 }
 
-pub fn parse_field(value: &str) -> FieldSchema {
+pub fn parse_field(value: &str) -> Result<FieldSchema, ParserError> {
     if value.is_empty() {
-        panic!("value cant be empty")
+        return Err(ParserError::Column("field can' t be empty".to_string()));
     }
     let mut splitted = value.split(":");
-    let key = splitted
-        .next()
-        .expect(format!("Not found key in {}. use synthax 'key:db_type'", value).as_str());
-    let db_type = splitted
-        .next()
-        .expect(format!("Not found db_type in {}. use synthax 'key:db_type'", value).as_str());
+    let key = splitted.next().ok_or_else(|| {
+        ParserError::Schema(format!(
+            "Not found key in {}. use synthax 'key:db_type'",
+            value
+        ))
+    })?;
     if key.is_empty() {
-        panic!("key can't be empty")
+        return Err(ParserError::Schema(format!(
+            "Not found key in {}. use synthax 'key:db_type'",
+            key
+        )));
     }
+    let db_type = splitted.next().ok_or_else(|| {
+        ParserError::Schema(format!(
+            "Not found db_type in {}. use synthax 'key:db_type'",
+            value
+        ))
+    })?;
     if db_type.is_empty() {
-        panic!("db_type can't be empty")
+        return Err(ParserError::Schema(format!(
+            "Not found db_type in {}. use synthax 'key:db_type'",
+            value
+        )));
     }
-    let db_type = parse_db_type(db_type);
+    let db_type = parse_db_type(db_type)?;
     let mut constraint = vec![];
     while let Some(c) = splitted.next() {
         constraint.push(c.to_string());
     }
-    FieldSchema::new(key.to_string(), db_type, constraint)
+    Ok(FieldSchema::new(key.to_string(), db_type, constraint))
 }
 
 #[cfg(test)]
@@ -48,7 +62,7 @@ mod parser_test {
 
     #[test]
     fn parse_field_successfully() {
-        let result = parse_field("name:text");
+        let result = parse_field("name:text").unwrap();
         assert_eq!(
             result,
             FieldSchema {
@@ -60,26 +74,26 @@ mod parser_test {
     }
 
     #[test]
-    #[should_panic]
     fn parse_field_fail_for_missing_key() {
-        parse_field(":text");
+        let err = parse_field(":text");
+        assert_eq!(err.is_err(), true)
     }
 
     #[test]
-    #[should_panic]
     fn parse_field_fail_for_missing_db_type() {
-        parse_field("key:");
+        let err: Result<FieldSchema, ParserError> = parse_field("key:");
+        assert_eq!(err.is_err(), true)
     }
 
     #[test]
-    #[should_panic]
     fn parse_field_fail_for_only_column() {
-        parse_field(":");
+        let err: Result<FieldSchema, ParserError> = parse_field(":");
+        assert_eq!(err.is_err(), true)
     }
 
     #[test]
-    #[should_panic]
     fn parse_field_fail_for_empty_string() {
-        parse_field("");
+        let err: Result<FieldSchema, ParserError> = parse_field("");
+        assert_eq!(err.is_err(), true)
     }
 }

@@ -1,8 +1,10 @@
+mod errors;
 mod parser;
 mod template;
 mod utils;
 
 use clap::Parser;
+use errors::parser_error::ParserError;
 
 use crate::{
     parser::parser::parse_field,
@@ -18,7 +20,7 @@ use crate::{
     version,
     about,
     long_about = None,
-    after_help = "Example: cargo run -- -t users -f id:integer:primarykey -f email:notnull:unique -f age:integer"
+    after_help = "Example: cargo run -- -t users -f id:integer:primarykey -f email:varchar:notnull:unique -f age:integer"
 )]
 struct Cli {
     #[arg(short, long)]
@@ -28,16 +30,19 @@ struct Cli {
     fields: Vec<String>,
 }
 
-fn main() {
+fn main() -> Result<(), ParserError> {
     let cli = Cli::parse();
     println!("Table: {}", cli.table);
     println!("Fields: {:?}\n", cli.fields);
     let mut fields = Vec::new();
-    cli.fields.iter().for_each(|i| fields.push(parse_field(i)));
-    let create_table = create_table_template(&cli.table, &fields);
+    for field in cli.fields.iter() {
+        fields.push(parse_field(field)?);
+    }
+    let create_table = create_table_template(&cli.table, &fields)?;
     println!("{}", create_table);
-    let insert = insert_into_template(&cli.table, &fields);
+    let insert = insert_into_template(&cli.table, &fields)?;
     println!("{}", insert);
-    let update = update_template(&cli.table, &fields);
+    let update = update_template(&cli.table, &fields)?;
     println!("{}", update);
+    Ok(())
 }
