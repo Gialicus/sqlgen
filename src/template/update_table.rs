@@ -12,11 +12,11 @@ pub fn update_template(table_name: &str, fields: &Vec<FieldSchema>) -> Result<St
         .iter()
         .filter(|field| field.key.to_lowercase() != "id")
     {
-        let row = format!("  {} = <value>,\n", schema.key);
+        let row = format!("  {} = '{}',\n", schema.key, schema.key);
         base += &row;
     }
     remove_last_comma(&mut base);
-    base += "WHERE id = <value>;\n";
+    base += "WHERE id = 'id';\n";
     Ok(base)
 }
 
@@ -37,7 +37,7 @@ mod update_table_test {
         ];
         let table = update_template(table_name, &fields).unwrap();
         let expected =
-            format!("UPDATE users SET\n  name = <value>,\n  age = <value>\nWHERE id = <value>;\n");
+            format!("UPDATE users SET\n  name = 'name',\n  age = 'age'\nWHERE id = 'id';\n");
         assert_eq!(table, expected);
     }
 }
