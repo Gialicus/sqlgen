@@ -12,8 +12,6 @@ enum DatabaseColumnType {
     Timestamp,
     Blob,
     Json,
-    NotNull,
-    Unknown,
 }
 
 impl DatabaseColumnType {
@@ -31,8 +29,7 @@ impl DatabaseColumnType {
             "timestamp" => DatabaseColumnType::Timestamp,
             "blob" => DatabaseColumnType::Blob,
             "json" => DatabaseColumnType::Json,
-            "notnull" => DatabaseColumnType::NotNull,
-            _ => DatabaseColumnType::Unknown,
+            _ => panic!("{} is not valid database column type", input),
         }
     }
 }
@@ -55,8 +52,6 @@ pub fn parse_db_type(value: &str) -> String {
         DatabaseColumnType::Timestamp => value.to_uppercase(),
         DatabaseColumnType::Blob => value.to_uppercase(),
         DatabaseColumnType::Json => value.to_uppercase(),
-        DatabaseColumnType::NotNull => String::from("NOT NULL"),
-        DatabaseColumnType::Unknown => panic!("Unknown type is not valid"),
     }
 }
 
@@ -81,15 +76,9 @@ mod db_type_parser_test {
     }
 
     #[test]
+    #[should_panic(expected = "foobar is not valid database column type")]
     fn test_from_str_unknown_type() {
-        assert_eq!(
-            DatabaseColumnType::from_str("UnknownType"),
-            DatabaseColumnType::Unknown
-        );
-        assert_eq!(
-            DatabaseColumnType::from_str("invalid"),
-            DatabaseColumnType::Unknown
-        );
+        DatabaseColumnType::from_str("foobar");
     }
 
     #[test]
@@ -97,13 +86,6 @@ mod db_type_parser_test {
         assert_eq!(parse_db_type("Integer"), "INTEGER");
         assert_eq!(parse_db_type("Text"), "TEXT");
         assert_eq!(parse_db_type("VarChar"), "VARCHAR");
-    }
-
-    #[test]
-    #[should_panic(expected = "Unknown type is not valid")]
-    fn test_parse_db_type_unknown_type() {
-        assert_eq!(parse_db_type("UnknownType"), "Unknown type is not valid");
-        assert_eq!(parse_db_type("invalid"), "Unknown type is not valid");
     }
 
     #[test]
