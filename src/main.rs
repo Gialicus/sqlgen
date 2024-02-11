@@ -1,5 +1,6 @@
 mod parser;
 mod template;
+mod utils;
 
 use clap::Parser;
 

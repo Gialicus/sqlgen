@@ -1,4 +1,4 @@
-use crate::parser::parser::FieldSchema;
+use crate::{parser::parser::FieldSchema, utils::remove_last_comma::remove_last_comma};
 
 pub fn create_table_template(table_name: &str, fields: Vec<FieldSchema>) -> String {
     let mut base = format!("CREATE TABLE {table_name} (\n");
@@ -6,9 +6,7 @@ pub fn create_table_template(table_name: &str, fields: Vec<FieldSchema>) -> Stri
         let row = format!("  {} {},\n", schema.key, schema.db_type);
         base += &row;
     }
-    if let Some(last_comma_position) = base.rfind(',') {
-        base.remove(last_comma_position);
-    }
+    remove_last_comma(&mut base);
     base += ");\n";
     base
 }
